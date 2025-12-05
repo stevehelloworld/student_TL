@@ -1,0 +1,35 @@
+services:
+  # Backend Service
+  - type: web
+    name: student-backend
+    runtime: docker
+    root: backend
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: student-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+
+  # Frontend Service
+  - type: web
+    name: student-frontend
+    runtime: docker
+    root: frontend
+    plan: free
+    envVars:
+      - key: BACKEND_URL
+        fromService:
+          type: web
+          name: student-backend
+          property: url
+
+databases:
+  - name: student-db
+    plan: free
+    databaseName: student_attendance
+    user: postgres
+
+version: "1"

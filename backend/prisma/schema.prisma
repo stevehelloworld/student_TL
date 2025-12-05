@@ -1,0 +1,281 @@
+datasource db {
+  provider = "postgresql"
+}
+
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+enum Role {
+  admin
+  teacher
+  student
+}
+
+enum UserStatus {
+  pending
+  active
+  inactive
+  suspended
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  username  String?  @unique
+  email     String?  @unique
+  password  String
+  role      Role
+  status    UserStatus @default(pending)
+  phone     String?
+  address   String?
+  line_id   String?
+  student_no String? @unique
+  birth_date DateTime?
+  last_login DateTime?
+  reset_password_token String?
+  reset_password_expires DateTime?
+  
+  created_by Int?
+  updated_by Int?
+  
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Relations
+  created_users User[] @relation("CreatedUsers")
+  updated_users User[] @relation("UpdatedUsers")
+  creator       User?   @relation("CreatedUsers", fields: [created_by], references: [id])
+  updater       User?  @relation("UpdatedUsers", fields: [updated_by], references: [id])
+
+  student_parents StudentParent[]
+  class_teacher_of ClassGroup[] @relation("ClassTeacher")
+  
+  courses_taught Course[] @relation("CourseTeacher")
+  sessions_taught Session[] @relation("SessionTeacher")
+  sessions_substituted Session[] @relation("SessionSubstitute")
+  
+  enrollments Enrollment[]
+  attendance_records AttendanceRecord[]
+  leave_requests LeaveRequest[]
+  approved_leaves LeaveRequest[] @relation("LeaveApprover")
+  
+  notifications Notification[]
+  
+  created_classes ClassGroup[] @relation("ClassCreator")
+  updated_classes ClassGroup[] @relation("ClassUpdater")
+  
+  created_courses Course[] @relation("CourseCreator")
+  updated_courses Course[] @relation("CourseUpdater")
+  
+  created_sessions Session[] @relation("SessionCreator")
+  updated_sessions Session[] @relation("SessionUpdater")
+  
+  created_enrollments Enrollment[] @relation("EnrollmentCreator")
+  
+  created_attendance AttendanceRecord[] @relation("AttendanceCreator")
+  updated_attendance AttendanceRecord[] @relation("AttendanceUpdater")
+  
+  updated_settings SystemSetting[]
+}
+
+model StudentParent {
+  id           Int      @id @default(autoincrement())
+  student_id   Int
+  parent_name  String
+  relationship String
+  phone        String?
+  email        String?
+  line_id      String?
+  is_primary   Boolean  @default(false)
+  address      String?
+  memo         String?
+  
+  created_by   Int
+  updated_by   Int?
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  student      User     @relation(fields: [student_id], references: [id])
+  
+  @@unique([student_id, parent_name, relationship])
+}
+
+model ClassGroup {
+  id              Int      @id @default(autoincrement())
+  name            String
+  academic_year   String
+  semester        String
+  class_teacher_id Int?
+  status          String
+  description     String?
+  
+  created_by      Int
+  updated_by      Int?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  class_teacher   User?    @relation("ClassTeacher", fields: [class_teacher_id], references: [id])
+  creator         User     @relation("ClassCreator", fields: [created_by], references: [id])
+  updater         User?    @relation("ClassUpdater", fields: [updated_by], references: [id])
+  
+  courses         Course[]
+}
+
+model Course {
+  id              Int      @id @default(autoincrement())
+  class_group_id  Int
+  name            String
+  description     String?
+  level           String?
+  teacher_id      Int
+  start_date      DateTime
+  end_date        DateTime
+  status          String
+  
+  created_by      Int
+  updated_by      Int?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  class_group     ClassGroup @relation(fields: [class_group_id], references: [id])
+  teacher         User     @relation("CourseTeacher", fields: [teacher_id], references: [id])
+  creator         User     @relation("CourseCreator", fields: [created_by], references: [id])
+  updater         User?    @relation("CourseUpdater", fields: [updated_by], references: [id])
+  
+  sessions        Session[]
+  enrollments     Enrollment[]
+  leave_requests  LeaveRequest[]
+}
+
+model Session {
+  id                  Int      @id @default(autoincrement())
+  course_id           Int
+  session_date        DateTime
+  start_time          DateTime @db.Time
+  end_time            DateTime @db.Time
+  teacher_id          Int
+  substitute_teacher_id Int?
+  content             String?
+  status              String
+  
+  created_by          Int
+  updated_by          Int?
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  course              Course   @relation(fields: [course_id], references: [id])
+  teacher             User     @relation("SessionTeacher", fields: [teacher_id], references: [id])
+  substitute_teacher  User?    @relation("SessionSubstitute", fields: [substitute_teacher_id], references: [id])
+  creator             User     @relation("SessionCreator", fields: [created_by], references: [id])
+  updater             User?    @relation("SessionUpdater", fields: [updated_by], references: [id])
+  
+  attendance_records  AttendanceRecord[]
+  leave_request_sessions LeaveRequestSession[]
+}
+
+model Enrollment {
+  id          Int      @id @default(autoincrement())
+  course_id   Int
+  student_id  Int
+  status      String
+  
+  created_by  Int
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  course      Course   @relation(fields: [course_id], references: [id])
+  student     User     @relation(fields: [student_id], references: [id])
+  creator     User     @relation("EnrollmentCreator", fields: [created_by], references: [id])
+
+  @@unique([course_id, student_id])
+}
+
+model AttendanceRecord {
+  id          Int      @id @default(autoincrement())
+  session_id  Int
+  student_id  Int
+  status      String
+  note        String?
+  
+  created_by  Int
+  updated_by  Int?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  session     Session  @relation(fields: [session_id], references: [id])
+  student     User     @relation(fields: [student_id], references: [id])
+  creator     User     @relation("AttendanceCreator", fields: [created_by], references: [id])
+  updater     User?    @relation("AttendanceUpdater", fields: [updated_by], references: [id])
+
+  @@unique([session_id, student_id])
+}
+
+model LeaveRequest {
+  id              Int      @id @default(autoincrement())
+  student_id      Int
+  course_id       Int
+  type            String
+  reason          String
+  status          String
+  rejection_reason String?
+  approved_by     Int?
+  approved_at     DateTime?
+  
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  student         User     @relation(fields: [student_id], references: [id])
+  course          Course   @relation(fields: [course_id], references: [id])
+  approver        User?    @relation("LeaveApprover", fields: [approved_by], references: [id])
+  
+  sessions        LeaveRequestSession[]
+}
+
+model LeaveRequestSession {
+  id               Int      @id @default(autoincrement())
+  leave_request_id Int
+  session_id       Int
+
+  leave_request    LeaveRequest @relation(fields: [leave_request_id], references: [id])
+  session          Session      @relation(fields: [session_id], references: [id])
+
+  @@unique([leave_request_id, session_id])
+}
+
+model Notification {
+  id          Int      @id @default(autoincrement())
+  user_id     Int
+  title       String
+  content     String
+  type        String
+  is_read     Boolean  @default(false)
+  read_at     DateTime?
+  created_at  DateTime @default(now())
+
+  user        User     @relation(fields: [user_id], references: [id])
+}
+
+model NotificationTemplate {
+  id               Int      @id @default(autoincrement())
+  code             String   @unique
+  name             String
+  title_template   String
+  content_template String
+  type             String
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+}
+
+model SystemSetting {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       String?
+  description String?
+  updated_by  Int?
+  updated_at  DateTime @updatedAt
+
+  updater     User?    @relation(fields: [updated_by], references: [id])
+}
