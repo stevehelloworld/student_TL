@@ -18,15 +18,15 @@ services:
     runtime: docker
     rootDir: frontend
     envVars:
-      - key: BACKEND_URL
+      - key: BACKEND_HOST
         fromService:
           type: web
           name: student-backend
-          property: url
+          property: host
 
 databases:
   - name: student-db
     databaseName: student_attendance
-    user: postgres
+    # user property removed to allow Render to generate it
 
 version: "1"
