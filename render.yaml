@@ -3,8 +3,7 @@ services:
   - type: web
     name: student-backend
     runtime: docker
-    root: backend
-    plan: free
+    rootDir: backend
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -17,8 +16,7 @@ services:
   - type: web
     name: student-frontend
     runtime: docker
-    root: frontend
-    plan: free
+    rootDir: frontend
     envVars:
       - key: BACKEND_URL
         fromService:
@@ -28,7 +26,6 @@ services:
 
 databases:
   - name: student-db
-    plan: free
     databaseName: student_attendance
     user: postgres
 
