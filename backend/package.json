@@ -6,7 +6,7 @@
   "scripts": {
     "test": "jest",
     "start": "ts-node -r dotenv/config src/server.ts",
-    "dev": "DATABASE_URL='postgresql://postgres:password@localhost:5432/student_attendance?schema=public' ts-node src/server.ts"
+    "dev": "ts-node -r dotenv/config src/server.ts"
   },
   "keywords": [],
   "author": "",
